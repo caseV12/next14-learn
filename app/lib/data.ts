@@ -9,21 +9,22 @@ import {
   Revenue,
 } from './definitions';
 import { formatCurrency } from './utils';
+import { unstable_noStore } from 'next/cache';
 
 export async function fetchRevenue() {
   // Add noStore() here to prevent the response from being cached.
   // This is equivalent to in fetch(..., {cache: 'no-store'}).
-
+  unstable_noStore();
   try {
     // Artificially delay a response for demo purposes.
     // Don't do this in production :)
 
-    // console.log('Fetching revenue data...');
-    // await new Promise((resolve) => setTimeout(resolve, 3000));
+    console.log('Fetching revenue data...');
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
     const data = await sql<Revenue>`SELECT * FROM revenue`;
 
-    // console.log('Data fetch completed after 3 seconds.');
+    console.log('Data fetch completed after 3 seconds.');
 
     return data.rows;
   } catch (error) {
@@ -33,13 +34,14 @@ export async function fetchRevenue() {
 }
 
 export async function fetchLatestInvoices() {
+  unstable_noStore();
   try {
     const data = await sql<LatestInvoiceRaw>`
-      SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
-      FROM invoices
-      JOIN customers ON invoices.customer_id = customers.id
-      ORDER BY invoices.date DESC
-      LIMIT 5`;
+    SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
+    FROM invoices
+    JOIN customers ON invoices.customer_id = customers.id
+    ORDER BY invoices.date DESC
+    LIMIT 5`;
 
     const latestInvoices = data.rows.map((invoice) => ({
       ...invoice,
@@ -53,6 +55,7 @@ export async function fetchLatestInvoices() {
 }
 
 export async function fetchCardData() {
+  unstable_noStore();
   try {
     // You can probably combine these into a single SQL query
     // However, we are intentionally splitting them to demonstrate
@@ -62,15 +65,17 @@ export async function fetchCardData() {
     //전체 데이터를 가져온 뒤 js로 Array.length를 찍는 대신
     //쿼리문을 제대로 쓰는 게 비용적으로 훨씬 좋다.
     const invoiceStatusPromise = sql`SELECT
-         SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS "paid",
-         SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS "pending"
-         FROM invoices`;
+    SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS "paid",
+    SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS "pending"
+    FROM invoices`;
 
     const data = await Promise.all([
       invoiceCountPromise,
       customerCountPromise,
       invoiceStatusPromise,
     ]);
+    //이 경우 병렬 처리로 서로 promise간 resolve 대기 없이 동시에 요청이 시작되지만...
+    //한 요청이 극도로 오래걸린다면? 다른 요청도 반환되지 않는다.
 
     const numberOfInvoices = Number(data[0].rows[0].count ?? '0');
     const numberOfCustomers = Number(data[1].rows[0].count ?? '0');
@@ -94,28 +99,29 @@ export async function fetchFilteredInvoices(
   query: string,
   currentPage: number,
 ) {
+  unstable_noStore();
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
   try {
     const invoices = await sql<InvoicesTable>`
-      SELECT
-        invoices.id,
-        invoices.amount,
-        invoices.date,
-        invoices.status,
-        customers.name,
-        customers.email,
-        customers.image_url
-      FROM invoices
-      JOIN customers ON invoices.customer_id = customers.id
-      WHERE
-        customers.name ILIKE ${`%${query}%`} OR
-        customers.email ILIKE ${`%${query}%`} OR
-        invoices.amount::text ILIKE ${`%${query}%`} OR
-        invoices.date::text ILIKE ${`%${query}%`} OR
-        invoices.status ILIKE ${`%${query}%`}
-      ORDER BY invoices.date DESC
-      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
+    SELECT
+    invoices.id,
+    invoices.amount,
+    invoices.date,
+    invoices.status,
+    customers.name,
+    customers.email,
+    customers.image_url
+    FROM invoices
+    JOIN customers ON invoices.customer_id = customers.id
+    WHERE
+    customers.name ILIKE ${`%${query}%`} OR
+    customers.email ILIKE ${`%${query}%`} OR
+    invoices.amount::text ILIKE ${`%${query}%`} OR
+    invoices.date::text ILIKE ${`%${query}%`} OR
+    invoices.status ILIKE ${`%${query}%`}
+    ORDER BY invoices.date DESC
+    LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
     `;
 
     return invoices.rows;
@@ -131,12 +137,12 @@ export async function fetchInvoicesPages(query: string) {
     FROM invoices
     JOIN customers ON invoices.customer_id = customers.id
     WHERE
-      customers.name ILIKE ${`%${query}%`} OR
-      customers.email ILIKE ${`%${query}%`} OR
-      invoices.amount::text ILIKE ${`%${query}%`} OR
-      invoices.date::text ILIKE ${`%${query}%`} OR
-      invoices.status ILIKE ${`%${query}%`}
-  `;
+    customers.name ILIKE ${`%${query}%`} OR
+    customers.email ILIKE ${`%${query}%`} OR
+    invoices.amount::text ILIKE ${`%${query}%`} OR
+    invoices.date::text ILIKE ${`%${query}%`} OR
+    invoices.status ILIKE ${`%${query}%`}
+    `;
 
     const totalPages = Math.ceil(Number(count.rows[0].count) / ITEMS_PER_PAGE);
     return totalPages;
@@ -147,15 +153,16 @@ export async function fetchInvoicesPages(query: string) {
 }
 
 export async function fetchInvoiceById(id: string) {
+  unstable_noStore();
   try {
     const data = await sql<InvoiceForm>`
-      SELECT
-        invoices.id,
-        invoices.customer_id,
-        invoices.amount,
-        invoices.status
-      FROM invoices
-      WHERE invoices.id = ${id};
+    SELECT
+    invoices.id,
+    invoices.customer_id,
+    invoices.amount,
+    invoices.status
+    FROM invoices
+    WHERE invoices.id = ${id};
     `;
 
     const invoice = data.rows.map((invoice) => ({
@@ -172,13 +179,14 @@ export async function fetchInvoiceById(id: string) {
 }
 
 export async function fetchCustomers() {
+  unstable_noStore();
   try {
     const data = await sql<CustomerField>`
-      SELECT
-        id,
-        name
-      FROM customers
-      ORDER BY name ASC
+    SELECT
+    id,
+    name
+    FROM customers
+    ORDER BY name ASC
     `;
 
     const customers = data.rows;
@@ -190,21 +198,22 @@ export async function fetchCustomers() {
 }
 
 export async function fetchFilteredCustomers(query: string) {
+  unstable_noStore();
   try {
     const data = await sql<CustomersTableType>`
 		SELECT
-		  customers.id,
-		  customers.name,
-		  customers.email,
-		  customers.image_url,
-		  COUNT(invoices.id) AS total_invoices,
-		  SUM(CASE WHEN invoices.status = 'pending' THEN invoices.amount ELSE 0 END) AS total_pending,
-		  SUM(CASE WHEN invoices.status = 'paid' THEN invoices.amount ELSE 0 END) AS total_paid
+    customers.id,
+    customers.name,
+    customers.email,
+    customers.image_url,
+    COUNT(invoices.id) AS total_invoices,
+    SUM(CASE WHEN invoices.status = 'pending' THEN invoices.amount ELSE 0 END) AS total_pending,
+    SUM(CASE WHEN invoices.status = 'paid' THEN invoices.amount ELSE 0 END) AS total_paid
 		FROM customers
 		LEFT JOIN invoices ON customers.id = invoices.customer_id
 		WHERE
-		  customers.name ILIKE ${`%${query}%`} OR
-        customers.email ILIKE ${`%${query}%`}
+    customers.name ILIKE ${`%${query}%`} OR
+    customers.email ILIKE ${`%${query}%`}
 		GROUP BY customers.id, customers.name, customers.email, customers.image_url
 		ORDER BY customers.name ASC
 	  `;
