@@ -2,6 +2,7 @@
 // It describes the shape of the data, and what data type each property should accept.
 // For simplicity of teaching, we're manually defining these types.
 // However, these types are generated automatically if you're using an ORM such as Prisma.
+//프리스마 쓸 때 생각해보면 프리스마 클라이언트에서 다 해결해주던 일임.
 export type User = {
   id: string;
   name: string;
