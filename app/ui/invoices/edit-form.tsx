@@ -10,6 +10,7 @@ import {
 import Link from 'next/link';
 import { Button } from '@/app/ui/button';
 import { updateInvoice } from '@/app/lib/actions';
+import { useFormState } from 'react-dom';
 
 export default function EditInvoiceForm({
   invoice,
@@ -21,9 +22,11 @@ export default function EditInvoiceForm({
   const updateInvoiceWithId = updateInvoice.bind(null, invoice.id);
   //bind 메소드로 콜백에 인자 전달하면서 쓰는. 매우 좋은 방법.
   //<form action={()=> updateInvoice(invoice.id)} 도 되긴하지만, 성능적으로 bind가 좋다고 함. bind는 한 번 생성하고 계속 참조한다고. 화살표는 계속 생성.
+  const initialState = { errors: {}, message: null };
+  const [state, dispatch] = useFormState(updateInvoiceWithId, initialState);
 
   return (
-    <form action={updateInvoiceWithId}>
+    <form action={dispatch}>
       <div className="rounded-md bg-gray-50 p-4 md:p-6">
         {/* Customer Name */}
         <div className="mb-4">

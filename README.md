@@ -39,3 +39,9 @@ redirect로 서버 측 라우팅.
 
 `error.tsx` `not-found.tsx` 파일 작성
 `error.tsx` 는 error 객체와 reset 메소드를 인자로 받을 수 있음.
+
+## Chapter 14 | Improving accessibility
+
+웹 접근성 향상을 위한 next lint에 대해 간단하게 다룸
+
+useFormState로 form valid 과정에서 error 처리 보강.

@@ -7,9 +7,11 @@ import { z } from 'zod';
 
 const FormSchema = z.object({
   id: z.string(),
-  customerId: z.string(),
-  amount: z.coerce.number(),
-  status: z.enum(['pending', 'paid']),
+  customerId: z.string({ invalid_type_error: 'customer를 지정해주세요' }),
+  amount: z.coerce.number().gt(0, { message: '$0 이상 값을 입력해주세요' }),
+  status: z.enum(['pending', 'paid'], {
+    invalid_type_error: 'invoice의 상태를 선택해주세요',
+  }),
   date: z.string(),
 });
 
@@ -19,7 +21,16 @@ const CreateInvoice = FormSchema.omit({ id: true, date: true });
 
 const UpdateInvoice = FormSchema.omit({ id: true, date: true });
 
-export async function createInvoice(formData: FormData) {
+export type State = {
+  errors?: {
+    customerId?: string[];
+    amount?: string[];
+    status?: string[];
+  };
+  message?: string | null;
+};
+
+export async function createInvoice(prevState: State, formData: FormData) {
   console.log(formData);
   //서버 쪽 콘솔(터미널)에 찍힘
   // const rawFormData = {
@@ -32,17 +43,28 @@ export async function createInvoice(formData: FormData) {
   //const rawFormData = Object.fromEntries(formData.entries()) 도 가능.
 
   //zod의 parse 메소드나 safeParseAsync 메소드에 인자로 rawFormdata 넘기고 parse된 값 받아옴.
-  const { customerId, amount, status } = CreateInvoice.parse({
+  const validatedFields = CreateInvoice.safeParse({
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
     status: formData.get('status'),
   });
-  const amountInCents = amount * 100;
+  console.log(validatedFields);
 
+  //유효성 검사 통과 못할지 에러 객체 넣어서 early return
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: '유효하지 않은 입력 필드. Invoice 생성 실패.',
+    };
+  }
+
+  // safeParse 객체의 success 프로퍼티 확인 후 실제로 DB에 넣을 값 구조분해 할당.
+  const { customerId, amount, status } = validatedFields.data;
+
+  const amountInCents = amount * 100;
   //프리스마를 쓸 땐 아래 부분에서 date를 안잡아도 알아서 프리스마 클라이언트와
   //프리스마의 schema 파일에 의해 생성된 sql문이 처리함
   const date = new Date().toISOString().split('T')[0];
-
   try {
     await sql`
       INSERT INTO invoices (customer_id, amount, status, date)
@@ -60,12 +82,26 @@ export async function createInvoice(formData: FormData) {
   redirect('/dashboard/invoices');
 }
 
-export async function updateInvoice(id: string, formData: FormData) {
-  const { customerId, amount, status } = UpdateInvoice.parse({
+export async function updateInvoice(
+  id: string,
+  prevState: State,
+  formData: FormData,
+) {
+  const validatedFields = UpdateInvoice.safeParse({
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
     status: formData.get('status'),
   });
+
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: '유효하지 않은 입력 필드. Invoice 생성 실패.',
+    };
+  }
+
+  const { customerId, amount, status } = validatedFields.data;
+
   const amountInCents = amount * 100;
 
   try {
