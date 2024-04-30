@@ -34,3 +34,8 @@ redirect로 서버 측 라우팅.
 
 서버 컴포넌트는 쿼리 파라미터를 가져오는 `searchParams` 외에도
 동적 파라미터를 가져오는 `params`를 참조할 수 있음.
+
+## Chapter 13 | Error handling
+
+`error.tsx` `not-found.tsx` 파일 작성
+`error.tsx` 는 error 객체와 reset 메소드를 인자로 받을 수 있음.
