@@ -1,9 +1,11 @@
 'use server';
 
 import { sql } from '@vercel/postgres';
+import { AuthError } from 'next-auth';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
+import { signIn } from '../auth';
 
 const FormSchema = z.object({
   id: z.string(),
@@ -130,4 +132,27 @@ export async function deleteInvoice(id: string) {
   }
   //아니 근데 이러면 Table 하나 지웠다고 해당 페이지 전체를 서버에서 다시 render 하는 거 아닌가?
   //생각보다 느려. 한 번 알아봐야 할 듯. 근데 이건 어쩔 수 없나.
+}
+
+/** formData를 받아서 NextAuth의 signIn 메소드에 넘기고 에러 핸들링만 하는 함수.
+ * 유저 쿼리와 비밀번호 매칭은 signIn 메소드 내에서 이루어진다.
+ */
+export async function authenticate(
+  prevState: string | undefined,
+  formData: FormData,
+) {
+  try {
+    //NextAuth 함수가 리턴하는 signIn 메소드는 providers 종류를 인자로 받는 로그인 함수 제공
+    await signIn('credentials', formData);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case 'CredentialsSignin':
+          return '유효하지 않은 계정 정보입니다';
+        default:
+          return '뭔가 잘못됨';
+      }
+    }
+    throw error; //authError 외의 에러 처리
+  }
 }

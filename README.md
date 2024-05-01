@@ -45,3 +45,25 @@ redirect로 서버 측 라우팅.
 웹 접근성 향상을 위한 next lint에 대해 간단하게 다룸
 
 useFormState로 form valid 과정에서 error 처리 보강.
+
+## Chapter 15 | Adding Authentication
+
+`Next auth`와 `middleware`로 인증 구현
+Vercel 에서도 env로 시크릿 키 잡아줘야 프로덕션에서 auth 동작함.
+
+미들웨어에서 인증을 처리할 경우, 인증이 확인되기 전까지 페이지 렌더링이 시작조차 하지 않기 때문에,
+성능과 보안 면에서 이점이 있음.
+페이지 내에서 직접 인증을 확인하고 처리하는 것과 비교해서 생각.
+react에서 `axios`의 `interceptor`를 사용했던 것도 생각.
+
+`middleware`를 모듈식으로 구성하기 위해 `auth.config.ts` 파일 작성.
+`auth.config.ts`: 미들웨어에서 유저 인증 여부에 따른 리다이렉트 처리 로직
+
+Node.js API에 의존하는 `bcrypt`를 미들웨어의 edge runtime에서 실행할 수 없으므로 인증 검증을 위해 `auth.ts` 분리해서 작성.
+`auth.ts`: DB에 유저 쿼리를 보내고 비밀번호 매칭 확인하는 로직, signIn, signOut, auth를 export 함.
+
+`action.ts`: signIn 메소드를 formData를 인자로 주며 호출하고 에러 핸들링만 함.
+
+`login-form` `sideNav`: action 부착. sideNav에서 inline으로 server action 콜백 다는 것도 한 번 볼 것.
+
+`useFormStatus()`로 form의 pending 여부에 따른 ui도 처리해줬음.
