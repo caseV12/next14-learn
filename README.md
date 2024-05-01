@@ -67,3 +67,15 @@ Node.js API에 의존하는 `bcrypt`를 미들웨어의 edge runtime에서 실�
 `login-form` `sideNav`: action 부착. sideNav에서 inline으로 server action 콜백 다는 것도 한 번 볼 것.
 
 `useFormStatus()`로 form의 pending 여부에 따른 ui도 처리해줬음.
+
+## Chapter 16 | Adding Metadata
+
+### Config-based
+
+`layout.tsx`에서 정적 메타, 동적 메타 export
+
+### File-based
+
+예약된 파일명들이 있음. 해당 파일명 사용 시 Next가 자체적으로 metadata로 만듦. 자세한 건 문서 참고.
+
+OG images: 동적 OG 이미지 만들고 싶다면 ImageResponse 생성자 활용
